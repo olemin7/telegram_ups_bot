@@ -1,0 +1,60 @@
+<html>
+<head>
+    <title>select wifi</title>
+
+    <script>
+
+    </script>
+    <script src="js/jquery-3.5.1.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/icons.js"></script>
+    <script src="js/scanwifi.js"></script>
+    <script src="js/http.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/misk.js"></script>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body onload="onLoad()">
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary rounded">
+    <div class="container-fluid">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" href="/index.html">Main</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/firmware">firmware</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="/wifi.html">select wifi</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/config_rc.html">config RC</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/config.html">config</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/logs.html">logs</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/about">About</a>
+            </li>
+        </ul>
+
+        <button type="button" class="btn btn-danger" onclick='reboot_request()' id='id_restart'>Restart</button>
+    </div>
+</nav>
+<!--
+    refresh_scanwifi
+-->
+<div id="wifi" class="card">
+    <div class="card-header"> AP List</div>
+    <button class="btn btn-primary" onclick="refresh_scanwifi() ">scanwifi</button>
+    <div class="card-body">
+        <div class="d-grid gap-2" id="AP_list" ></div>
+    </div>
+</div>
+<!-- -->
+</body>
+</html>

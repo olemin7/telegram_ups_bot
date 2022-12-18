@@ -1,0 +1,70 @@
+<html>
+<head>
+    <title>clock ui</title>
+
+    <script>
+
+    function onIndexLoad(){
+        logs_on_load();
+    }
+
+    </script>
+    <script src="js/jquery-3.5.1.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/icons.js"></script>
+    <script src="js/http.js"></script>
+    <script src="js/logs.js"></script>
+    <script src="js/misk.js"></script>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body onload="onIndexLoad()">
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary rounded">
+    <div class="container-fluid">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" href="/index.html">Main</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/firmware">firmware</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/wifi.html">select wifi</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/config_rc.html">config RC</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/config.html">config</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="/logs.html">logs</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/about">About</a>
+            </li>
+        </ul>
+
+        <button type="button" class="btn btn-danger" onclick='reboot_request()' id='id_restart'>Restart</button>
+    </div>
+</nav>
+<!--
+-->
+<div class="Card">
+    <div class="card-header"> logs
+        <div class="float-end">
+            <label class="btn btn-secondary">
+                <input type="checkbox" onclick=" logs_autoscroll()" id="id_logs_autoscroll" checked/>
+                <span >Autoscroll</span>
+            </label>
+            <button type="button" class="btn btn-outline-primary" onclick="logs_Clear()">Clear</button>
+        </div>
+    </div>
+    <div class="card-body" id="command-body">
+        <pre id="log_content" style="min-height: 350px; max-height: 350px;"> </pre>
+    </div>
+</div>
+
+<!-- -->
+</body>
+</html>

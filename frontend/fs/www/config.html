@@ -1,0 +1,65 @@
+<html>
+<head>
+    <title>clock ui</title>
+
+    <script>
+    function onIndexLoad(status){
+        config_on_load();
+    }
+    </script>
+    <script src="js/jquery-3.5.1.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/icons.js"></script>
+    <script src="js/http.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/misk.js"></script>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body onload="onIndexLoad()">
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary rounded">
+    <div class="container-fluid">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" href="/index.html">Main</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/firmware">firmware</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/wifi.html">select wifi</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/config_rc.html">config RC</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="/config.html">config</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/logs.html">logs</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/about">About</a>
+            </li>
+        </ul>
+
+        <button type="button" class="btn btn-danger" onclick='reboot_request()' id='id_restart'>Restart</button>
+    </div>
+</nav>
+<!--
+-->
+<div class="Card">
+    <div class="card-header"> configs
+        <div class="float-end">
+            <button type="button" id="id_save" class="btn btn-outline-primary" onclick="config_save()">Save</button>
+            <button type="button" id="id_cancel" class="btn btn-outline-primary" onclick="config_cancel()">Cancel</button>
+        </div>
+    </div>
+        <div class="card-body">
+             <div class="d-grid gap-2" id="id_config" ></div>
+        </div>
+</div>
+
+<!-- -->
+</body>
+</html>

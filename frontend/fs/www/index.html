@@ -1,0 +1,113 @@
+<html>
+<head>
+    <title>clock ui</title>
+
+    <script>
+
+    function onIndexLoad(status){
+        $('#id_add_cmd').html(get_icon_svg("plus-sign", "1.3em", "1.2em"));
+        index_on_load()
+        preset_cmd_on_load();
+    }
+
+    function reboot_request(){
+        if (confirm("Confirm Restart") === true) {
+            var url="/restart";
+            SendGetHttp(url,function(resp){
+                $('#id_restart').html("Restarting...")
+                setTimeout(() => location.reload(true), 1000);
+            },on_ResponceErrorLog);
+        }
+    }
+
+    </script>
+    <script src="js/jquery-3.5.1.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/icons.js"></script>
+    <script src="js/index.js"></script>
+    <script src="js/preset.js"></script>
+    <script src="js/preset_cmd.js"></script>
+    <script src="js/http.js"></script>
+    <script src="js/misk.js"></script>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body onload="onIndexLoad()">
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary rounded">
+    <div class="container-fluid">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link active" href="/index.html">Main</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/firmware">firmware</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/wifi.html">select wifi</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/config.html">config</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/logs.html">logs</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/about">About</a>
+            </li>
+        </ul>
+
+        <button type="button" class="btn btn-danger" onclick='reboot_request()' id='id_restart'>Restart</button>
+    </div>
+</nav>
+<!--
+-->
+<div class="Card">
+    <div class="card-header"> commands
+        <div class="float-end">
+            <button type="button" id='id_add_cmd'  class="btn btn-outline-primary" onclick='preset_edit(-1)'></button>
+            <button type="button" id="id_save" class="btn btn-outline-primary" onclick="preset_save()">Save</button>
+            <button type="button" id="id_cancel" class="btn btn-outline-primary" onclick="preset_cancel()">Cancel</button>
+        </div>
+    </div>
+        <div class="card-body">
+             <div class="d-grid gap-2" id="preset" ></div>
+        </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="id_edit_item_dialog" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="id_edit_item_dialog_head">name</h5>
+            </div>
+            <div class="modal-body">
+                <form class="row g-3 needs-validation" novalidate>
+                    <div class="col-md-6">
+                        <label for="id_edit_item_dialog_name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="id_edit_item_dialog_name" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="id_edit_item_handler" class="form-label">Handler</label>
+                        <select class="form-select" id="id_edit_item_handler" required>
+                            <option value="set">set</option>
+                            <option value="toggle">toggle</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                    <label for="id_edit_item_val" class="form-label">Variable</label>
+                    <input type="number" class="form-control" id="id_edit_item_val" >
+                    </div>
+                </form>
+            </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-warning" onclick="preset_send(preset_dialog_get())">Test</button>
+        <button type="button" class="btn btn-secondary" onclick="$('#id_edit_item_dialog').modal('hide');">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="preset_dialog_save()">Save changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- -->
+</body>
+</html>
