@@ -29,8 +29,8 @@ constexpr auto AP_MODE_TIMEOUT = 30 * 1000;  // switch to ap if no wifi
 constexpr auto AUTO_REBOOT_AFTER_AP_MODE =
     5 * 60 * 1000;  // switch to ap if no wifi
 
-constexpr auto V220_PIN = D5;
-constexpr auto LOW_BAT_PIN = D6;
+constexpr auto V220_PIN = D6;
+constexpr auto LOW_BAT_PIN = D5;
 
 const char* pDeviceName = nullptr;
 ESP8266WebServer serverWeb(SERVER_PORT_WEB);
@@ -186,8 +186,7 @@ void setup_config() {
   config.getConfig()["DEVICE_NAME"] = "bot";
   config.getConfig()["OTA_USERNAME"] = "";
   config.getConfig()["OTA_PASSWORD"] = "";
-  config.getConfig()["TELEGRAM_TOLKEN"] =
-      "5690702089:AAHsrZ-LOadMA8sB8HmaYnotDwGIxbPKQLI";
+  config.getConfig()["TELEGRAM_TOLKEN"] ="";
   config.getConfig()["TELEGRAM_UPDATE_TIME"] = 2000;
 
   if (!config.load("/www/config/config.json")) {
