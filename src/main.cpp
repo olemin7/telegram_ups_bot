@@ -38,7 +38,7 @@ ESP8266HTTPUpdateServer otaUpdater;
 CWifiStateSignal wifiStateSignal;
 cevent_loop event_loop;
 cled_status led_status;
-constexpr auto DEBOUNCE_SIGNAL_MS = 300;
+constexpr auto DEBOUNCE_SIGNAL_MS = 3000;
 SignalDebounceLoop<bool> state_220(DEBOUNCE_SIGNAL_MS,
                                    []() { return digitalRead(V220_PIN) != 0; });
 SignalDebounceLoop<bool> state_bat(DEBOUNCE_SIGNAL_MS, []() {

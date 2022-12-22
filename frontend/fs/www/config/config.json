@@ -1,0 +1,10 @@
+{
+  "DEVICE_NAME": "CLOCK",
+  "MQTT_SERVER": "",
+  "MQTT_PORT": 0,
+  "MQTT_PERIOD": 30000,
+  "OTA_USERNAME": "",
+  "OTA_PASSWORD": "",
+  "LED_MATRIX_ROTATION": 0
+}
+

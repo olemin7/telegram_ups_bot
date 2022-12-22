@@ -127,7 +127,7 @@ def run(PORT):
     printHandlers()
 
     print('running server... ')
-    print('http://localhost:',PORT)
+    print('http://localhost:',PORT,sep="")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
@@ -140,7 +140,7 @@ parser.add_argument('-c', dest='configFile', help='patch to config File',  requi
 parser.add_argument('-p', dest='port',type=int,default=8081, help='server port', )
 args = parser.parse_args()
 configDir ="./" #cur dir
-if os.path.dirname(args.configFile) !="":    	
+if os.path.dirname(args.configFile) !="":
     configDir=os.path.dirname(args.configFile)+"/"
 print("configDir="+configDir)
 print("parce config file" )

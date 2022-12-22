@@ -5,7 +5,9 @@
  *      Author: oleksandr
  */
 
+#include <ArduinoJson.h>
 #include <AsyncTelegram2.h>
+#include <LittleFS.h>
 #include <cledstatus.h>
 #include <ctelegram.h>
 #include <logs.h>
@@ -20,19 +22,74 @@ BearSSL::X509List certificate(telegram_cert);
 AsyncTelegram2 myBot(client);
 constexpr auto MYTZ = "EET-2EEST,M3.5.0/3,M10.5.0/4";
 std ::function<std::string()> get_host_status = nullptr;
+constexpr auto JSON_FILE_SUBSCRIBERS = "/www/config/subscribers.json";
 
 class csubscribes {
+ private:
   std::set<int64_t> ids;
+  const std::string persist_file_;
+  static constexpr auto CAPACITY_ = 16;
+  static constexpr auto JZON_CAPACITY_ = JSON_ARRAY_SIZE(CAPACITY_);
+  void persist() {
+    StaticJsonDocument<JZON_CAPACITY_> doc;
+    JsonArray array = doc.to<JsonArray>();
+    for (const auto &id : ids) {
+      array.add(id);
+    }
+    auto jsonFile = LittleFS.open(persist_file_.c_str(), "w");
+    if (!jsonFile) {
+      DBG_OUT << "Failed to create file" << std::endl;
+      return;
+    }
+    if (serializeJson(array, jsonFile) == 0) {
+      DBG_OUT << "Failed to write file" << std::endl;
+    }
+    jsonFile.close();
+  }
 
  public:
+  csubscribes(const std::string &&file) : persist_file_(std::move(file)){};
   auto size() const { return ids.size(); }
-  void add(int64_t id) {
-    ids.emplace(id);
-    myBot.sendTo(id, "Subscribed");
+  void init() {
+    StaticJsonDocument<JZON_CAPACITY_> doc;
+    auto jsonFile = LittleFS.open(persist_file_.c_str(), "r");
+    if (!jsonFile) {
+      DBG_OUT << "Failed to open file" << std::endl;
+      return;
+    }
+    auto error = deserializeJson(doc, jsonFile);
+    if (error) {
+      DBG_OUT << "deserializeJson error=" << error.c_str() << std::endl;
+      return;
+    }
+    JsonArray array = doc.as<JsonArray>();
+    for (JsonVariant v : array) {
+      ids.emplace(v.as<int64_t>());
+    }
+    DBG_OUT << "subscribers:" << ids.size() << std::endl;
   }
+  void add(int64_t id) {
+    const auto sz = ids.size();
+    if (CAPACITY_ > sz) {
+      ids.emplace(id);
+      if (sz != ids.size()) {
+        myBot.sendTo(id, "Subscribed");
+        persist();
+      } else {
+        myBot.sendTo(id, "already");
+      }
+    } else {
+      myBot.sendTo(id, "нема місця");
+    }
+  }
+
   void remove(int64_t id) {
-    ids.erase(id);
-    myBot.sendTo(id, "unSubscribed");
+    if (ids.erase(id)) {
+      myBot.sendTo(id, "unSubscribed");
+      persist();
+    } else {
+      myBot.sendTo(id, "wasn`t");
+    }
   }
   bool isInList(int64_t id) const { return ids.find(id) != ids.cend(); }
   void notify(const std::string &&notice) const {
@@ -41,11 +98,12 @@ class csubscribes {
     }
   }
 };
-csubscribes subscribes;
+csubscribes subscribes(JSON_FILE_SUBSCRIBERS);
 
 void telegram_setup(const char *tolken, const uint16_t interval,
                     std ::function<std::string()> &&status_fun) {
   get_host_status = move(status_fun);
+  subscribes.init();
   // Sync time with NTP, to check properly Telegram certificate
   configTime(MYTZ, "time.google.com", "time.windows.com", "pool.ntp.org");
   // Set certficate, session and some other base client properies

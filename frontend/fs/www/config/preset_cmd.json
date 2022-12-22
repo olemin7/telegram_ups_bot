@@ -1,0 +1,6 @@
+{"items":[
+ {"cmd":"off"    ,"handler":"set"	,"val":0}
+,{"cmd":"night"  ,"handler":"set"	,"val":2}
+,{"cmd":"on"     ,"handler":"set"  ,"val":1023}
+,{"cmd":"toggle" ,"handler":"toggle","val":0}
+]}

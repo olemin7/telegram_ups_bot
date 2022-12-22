@@ -59,55 +59,6 @@
         <button type="button" class="btn btn-danger" onclick='reboot_request()' id='id_restart'>Restart</button>
     </div>
 </nav>
-<!--
--->
-<div class="Card">
-    <div class="card-header"> commands
-        <div class="float-end">
-            <button type="button" id='id_add_cmd'  class="btn btn-outline-primary" onclick='preset_edit(-1)'></button>
-            <button type="button" id="id_save" class="btn btn-outline-primary" onclick="preset_save()">Save</button>
-            <button type="button" id="id_cancel" class="btn btn-outline-primary" onclick="preset_cancel()">Cancel</button>
-        </div>
-    </div>
-        <div class="card-body">
-             <div class="d-grid gap-2" id="preset" ></div>
-        </div>
-</div>
-
-<!-- Modal -->
-<div class="modal fade" id="id_edit_item_dialog" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="id_edit_item_dialog_head">name</h5>
-            </div>
-            <div class="modal-body">
-                <form class="row g-3 needs-validation" novalidate>
-                    <div class="col-md-6">
-                        <label for="id_edit_item_dialog_name" class="form-label">Name</label>
-                        <input type="text" class="form-control" id="id_edit_item_dialog_name" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="id_edit_item_handler" class="form-label">Handler</label>
-                        <select class="form-select" id="id_edit_item_handler" required>
-                            <option value="set">set</option>
-                            <option value="toggle">toggle</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                    <label for="id_edit_item_val" class="form-label">Variable</label>
-                    <input type="number" class="form-control" id="id_edit_item_val" >
-                    </div>
-                </form>
-            </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-warning" onclick="preset_send(preset_dialog_get())">Test</button>
-        <button type="button" class="btn btn-secondary" onclick="$('#id_edit_item_dialog').modal('hide');">Cancel</button>
-        <button type="button" class="btn btn-primary" onclick="preset_dialog_save()">Save changes</button>
-      </div>
-    </div>
-  </div>
-</div>
 <!-- -->
 </body>
 </html>
