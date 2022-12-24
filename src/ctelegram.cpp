@@ -4,17 +4,22 @@
  *  Created on: Dec 17, 2022
  *      Author: oleksandr
  */
+// https://core.telegram.org/bots/api
 
 #include <ArduinoJson.h>
-#include <AsyncTelegram2.h>
+#include <AsyncTelegram2.h>  // https://github.com/cotestatnt/AsyncTelegram2
 #include <LittleFS.h>
 #include <cledstatus.h>
 #include <ctelegram.h>
 #include <logs.h>
 #include <misk.h>
 
+#include <algorithm>
+#include <functional>
 #include <set>
 #include <sstream>
+#include <tuple>
+#include <vector>
 
 BearSSL::WiFiClientSecure client;
 BearSSL::Session session;
@@ -23,6 +28,60 @@ AsyncTelegram2 myBot(client);
 constexpr auto MYTZ = "EET-2EEST,M3.5.0/3,M10.5.0/4";
 std ::function<std::string()> get_host_status = nullptr;
 constexpr auto JSON_FILE_SUBSCRIBERS = "/www/config/subscribers.json";
+bool isStarted = false;
+
+class ccmd_list {
+  std::vector<std::tuple<std::string, std::string,
+                         std::function<void(TBMessage &&msg)>>>
+      cmd_list_;
+
+ public:
+  void add(std::string &&cmd, std::string &&description,
+           std::function<void(TBMessage &&msg)> &&handler) {
+    cmd_list_.emplace_back(cmd, description, handler);
+  }
+  void handle(TBMessage &&msg) const {
+    if (msg.messageType != MessageText || cmd_list_.empty()) {
+      return;
+    }
+    auto it =
+        std::find_if(cmd_list_.cbegin(), cmd_list_.cend(), [&msg](auto &el) {
+          return msg.text.equalsIgnoreCase(std::get<0>(el).c_str());
+        });
+
+    if (it != cmd_list_.end()) {
+      std::get<2> (*it)(std::move(msg));
+
+    } else {
+      std::get<2>(cmd_list_.back())(std::move(msg));
+    }
+  }
+
+  std::string to_json() {
+    std::stringstream payload;
+    payload << "{\"commands\":[";
+    bool first = true;
+    for (const auto &el : cmd_list_) {
+      if (!first) {
+        payload << ",";
+      } else {
+        first = false;
+      }
+      payload << "{\"command\":\"" << std::get<0>(el) << "\",";
+      payload << "\"description\":\"" << std::get<1>(el) << "\"}";
+    }
+    payload << "]}";
+    DBG_OUT << payload.str() << std::endl;
+    return payload.str();
+  }
+  std::string to_str() {
+    std::stringstream stream;
+    for (const auto &el : cmd_list_) {
+      stream << std::get<0>(el) << " - " << std::get<1>(el) << std::endl;
+    }
+    return stream.str();
+  }
+};
 
 class csubscribes {
  private:
@@ -98,10 +157,33 @@ class csubscribes {
     }
   }
 };
+
 csubscribes subscribes(JSON_FILE_SUBSCRIBERS);
+ccmd_list cmd_list;
+
+void send_welcome(TBMessage &&msg) {
+  DBG_FUNK();
+  std::stringstream stream;
+
+  stream << "BOT " << myBot.getBotName() << std::endl;
+  if (subscribes.isInList(msg.sender.id)) {
+    stream << "підписані" << std::endl;
+  }
+  stream << "доступні команди" << std::endl;
+  stream << cmd_list.to_str();
+
+  myBot.sendMessage(msg, stream.str().c_str());
+}
+
+void send_status(TBMessage &&msg) {
+  std::stringstream stream;
+  stream << get_host_status();
+  myBot.sendMessage(msg, stream.str().c_str());
+}
 
 void telegram_setup(const char *tolken, const uint16_t interval,
                     std ::function<std::string()> &&status_fun) {
+  isStarted = false;
   get_host_status = move(status_fun);
   subscribes.init();
   // Sync time with NTP, to check properly Telegram certificate
@@ -112,16 +194,33 @@ void telegram_setup(const char *tolken, const uint16_t interval,
   client.setBufferSizes(1024, 1024);
   myBot.setUpdateTime(interval);
   myBot.setTelegramToken(tolken);
+  cmd_list.add("/start", "поточаток",
+               [](auto msg) { send_welcome(std::move(msg)); });
+  cmd_list.add("/status", "поточний стан",
+               [](auto msg) { send_status(std::move(msg)); });
+  cmd_list.add("/stat", "статистика", [](auto msg) {});
+  cmd_list.add("/subscribe", "підписатись на зміну стану",
+               [](auto msg) { subscribes.add(msg.sender.id); });
+  cmd_list.add("/unsubscribe", "відписатись",
+               [](auto msg) { subscribes.remove(msg.sender.id); });
+  cmd_list.add("/help", "допомога",
+               [](auto msg) { send_welcome(std::move(msg)); });
 }
 
 bool telegram_start() {
+  DBG_FUNK();
   DBG_OUT << "Test Telegram connection... ";
 
   if (!myBot.begin()) {
     DBG_OUT << "NOK" << std::endl;
+    isStarted = false;
     return false;
   }
+  isStarted = true;
   DBG_OUT << "OK" << std::endl;
+
+  myBot.setMyCommands(cmd_list.to_json().c_str());
+
   std::stringstream stream;
   stream << "Активувався" << std::endl;
   stream << get_host_status();
@@ -135,37 +234,17 @@ bool telegram_restart() {
   return telegram_start();
 }
 
-void send_welcome(TBMessage &&msg) {
-  std::stringstream stream;
-
-  stream << "BOT " << myBot.getBotName() << std::endl;
-  if (subscribes.isInList(msg.sender.id)) {
-    stream << "підписані" << std::endl;
-  }
-  stream << "/subscribe - підписатись на зміну стану\n"
-            "/status - поточний стан\n"
-            "/unsubscribe - відписатись";
-  myBot.sendMessage(msg, stream.str().c_str());
-}
-
-void send_status(TBMessage &&msg) {
-  std::stringstream stream;
-  stream << get_host_status();
-  myBot.sendMessage(msg, stream.str().c_str());
-}
-
 void telegram_notify(const std::string &&notice) {
-  if (myBot.checkConnection()){
-      DBG_OUT << "notice=" << notice << std::endl;
-
-  subscribes.notify(std::move(notice));
-  }else{
+  if (isStarted) {
+    DBG_OUT << "notice=" << notice << std::endl;
+    subscribes.notify(std::move(notice));
+  } else {
     DBG_OUT << "tb is not connected" << std::endl;
   }
 }
 
 void telegram_loop() {
-  if (!myBot.checkConnection()) {
+  if (!isStarted) {
     return;
   }
   // local variable to store telegram message data
@@ -178,16 +257,8 @@ void telegram_loop() {
   switch (msg.messageType) {
     case MessageText:
       DBG_OUT << "Text message received:\"" << msg.text << "\"" << std::endl;
-      if (msg.text.equalsIgnoreCase("/subscribe")) {
-        subscribes.add(msg.sender.id);
-        break;
-      } else if (msg.text.equalsIgnoreCase("/status")) {
-        send_status(std::move(msg));
-        break;
-      } else if (msg.text.equalsIgnoreCase("/unsubscribe")) {
-        subscribes.remove(msg.sender.id);
-        break;
-      }
+      cmd_list.handle(std::move(msg));
+      break;
     default:
       send_welcome(std::move(msg));
   }

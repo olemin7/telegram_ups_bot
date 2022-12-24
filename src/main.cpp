@@ -145,6 +145,7 @@ void setup_WebPages() {
 void setup_WIFIConnect() {
   DBG_FUNK();
   static int16_t to_ap_mode_thread = 0;
+  static int16_t to_telegram_restart_thread = 0;
   WiFi.persistent(false);
   WiFi.hostname(pDeviceName);
   WiFi.begin();
@@ -152,11 +153,15 @@ void setup_WIFIConnect() {
     if (WL_CONNECTED == status) {
       // skip AP mode
       event_loop.remove(to_ap_mode_thread);
+      event_loop.remove(to_telegram_restart_thread);  // kill if present
 
-      if (!telegram_restart()) {
-        event_loop.set_timeout([]() { telegram_restart(); },
-                               15000);  // retry connection
-      }
+      to_telegram_restart_thread = event_loop.set_interval(
+          []() {
+            if (telegram_restart()) {
+              event_loop.remove(to_telegram_restart_thread);  // started
+            };
+          },
+          15000, true);  // retry connection
     }
     led_status.set(cled_status::Work);
     wifi_status(DBG_OUT);
