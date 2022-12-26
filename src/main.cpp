@@ -18,6 +18,7 @@
 #include <ctelegram.h>
 #include <CSignal.h>
 #include <sstream>
+#include <ceventcolector.h>
 // clang-format on
 
 using namespace std;
@@ -44,6 +45,8 @@ SignalDebounceLoop<bool> state_220(DEBOUNCE_SIGNAL_MS,
 SignalDebounceLoop<bool> state_bat(DEBOUNCE_SIGNAL_MS, []() {
   return digitalRead(LOW_BAT_PIN) != 0;
 });
+cevent_colector event_colector;
+ctelegram telegram;
 
 auto config = CConfig<512>();
 const char* update_path = "/firmware";
@@ -157,8 +160,9 @@ void setup_WIFIConnect() {
 
       to_telegram_restart_thread = event_loop.set_interval(
           []() {
-            if (telegram_restart()) {
+            if (telegram.start()) {
               event_loop.remove(to_telegram_restart_thread);  // started
+              telegram.notify(get_status_str());
             };
           },
           15000, true);  // retry connection
@@ -216,10 +220,12 @@ void setup() {
   LittleFS_info(DBG_OUT);
   setup_config();
   setup_WebPages();
-  telegram_setup(config.getCSTR("TELEGRAM_TOLKEN"),
-                 config.getInt("TELEGRAM_UPDATE_TIME"), get_status_str);
-  state_220.onChange([](auto) { telegram_notify(get_state_220()); });
-  state_bat.onChange([](auto) { telegram_notify(get_state_bat()); });
+  telegram.setup(config.getCSTR("TELEGRAM_TOLKEN"),
+                 config.getInt("TELEGRAM_UPDATE_TIME"));
+  telegram.add_cmd("/status", "стан системи",
+                   [](auto) { return get_status_str(); });
+  state_220.onChange([](auto) { telegram.notify(get_state_220()); });
+  state_bat.onChange([](auto) { telegram.notify(get_state_bat()); });
 
   setup_WIFIConnect();
   DBG_OUT << "Setup done" << endl;
@@ -229,7 +235,7 @@ void loop() {
   wifiStateSignal.loop();
   serverWeb.handleClient();
   event_loop.loop();
-  telegram_loop();
+  telegram.loop();
   state_220.loop();
   state_bat.loop();
 }
