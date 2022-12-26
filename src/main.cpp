@@ -40,8 +40,8 @@ CWifiStateSignal wifiStateSignal;
 cevent_loop event_loop;
 cled_status led_status;
 constexpr auto DEBOUNCE_SIGNAL_MS = 3000;
-SignalDebounceLoop<bool> state_220(DEBOUNCE_SIGNAL_MS,
-                                   []() { return digitalRead(V220_PIN) != 0; });
+SignalDebounceLoop<bool> power(DEBOUNCE_SIGNAL_MS,
+                               []() { return digitalRead(V220_PIN); });
 SignalDebounceLoop<bool> state_bat(DEBOUNCE_SIGNAL_MS, []() {
   return digitalRead(LOW_BAT_PIN) != 0;
 });
@@ -61,30 +61,9 @@ te_ret get_about(ostream& out) {
   return er_ok;
 }
 
-string get_state_220() {
-  stringstream ss;
-  ss << "\"стан 220\":\"";
-  ss << (state_220.getLastValue() ? "відсутній" : "увімкнений") << "\"";
-  return ss.str();
-}
-
-string get_state_bat() {
-  stringstream ss;
-  ss << "\"заряд батареї\":\"";
-  ss << (state_bat.getLastValue() ? "нормальний" : "низький") << "\"";
-  return ss.str();
-}
-
 te_ret get_status(ostream& out) {
-  out << get_state_220();
-  out << endl;
-  out << get_state_bat();
+  out << event_colector.get_status();
   return er_ok;
-}
-string get_status_str() {
-  stringstream ss;
-  get_status(ss);
-  return ss.str();
 }
 
 void setup_WebPages() {
@@ -162,8 +141,12 @@ void setup_WIFIConnect() {
           []() {
             if (telegram.start()) {
               event_loop.remove(to_telegram_restart_thread);  // started
-              telegram.notify(get_status_str());
-            };
+              event_colector.event(cevent_colector::ekind::ev_tb_connectd,
+                                   true);
+            } else {
+              event_colector.event(cevent_colector::ekind::ev_tb_connectd,
+                                   false);
+            }
           },
           15000, true);  // retry connection
     }
@@ -222,12 +205,22 @@ void setup() {
   setup_WebPages();
   telegram.setup(config.getCSTR("TELEGRAM_TOLKEN"),
                  config.getInt("TELEGRAM_UPDATE_TIME"));
-  telegram.add_cmd("/status", "стан системи",
-                   [](auto) { return get_status_str(); });
-  state_220.onChange([](auto) { telegram.notify(get_state_220()); });
-  state_bat.onChange([](auto) { telegram.notify(get_state_bat()); });
+  telegram.add_cmd(
+      "/status", "стан системи",
+      [](auto) { return event_colector.get_status(); }, SHOW_IN_MENU);
+  power.onChange([](auto val) {
+    event_colector.event(cevent_colector::ekind::ev_power, val);
+    telegram.notify(
+        event_colector.get_status(cevent_colector::ekind::ev_power));
+  });
+  state_bat.onChange([](auto val) {
+    event_colector.event(cevent_colector::ekind::ev_battery, val);
+    telegram.notify(
+        event_colector.get_status(cevent_colector::ekind::ev_battery));
+  });
 
   setup_WIFIConnect();
+  event_colector.event(cevent_colector::ekind::ev_start);
   DBG_OUT << "Setup done" << endl;
 }
 
@@ -236,6 +229,6 @@ void loop() {
   serverWeb.handleClient();
   event_loop.loop();
   telegram.loop();
-  state_220.loop();
+  power.loop();
   state_bat.loop();
 }

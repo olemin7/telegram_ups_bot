@@ -31,7 +31,6 @@ class ccmd_list {
   std::vector<cmd_t> cmd_list_;
 
  public:
-  static constexpr uint8_t SHOW_IN_MENU = 1;
   void add(std::string &&cmd, std::string &&description,
            ctelegram::cmd_handler_t &&handler, uint8_t mask = 0) {
     cmd_list_.emplace_back(cmd_t{cmd, description, handler, mask});
@@ -185,18 +184,18 @@ class ctelegram::implementation {
     client_.setBufferSizes(1024, 1024);
     my_bot_.setUpdateTime(interval);
     my_bot_.setTelegramToken(tolken);
-    cmd_list_.add(
+    add_cmd(
         "/help", "допомога", [this](auto msg) { return send_welcome(msg); },
-        ccmd_list::SHOW_IN_MENU);
-    cmd_list_.add("/subscribe", "підписатись на зміну стану",
+        SHOW_IN_MENU);
+    add_cmd("/subscribe", "підписатись на зміну стану",
                  [this](auto msg) { return subscribes_.add(msg.sender.id); });
-    cmd_list_.add("/unsubscribe", "відписатись",
-                 [this](auto msg) { return subscribes_.remove(msg.sender.id); });
+    add_cmd("/unsubscribe", "відписатись", [this](auto msg) {
+      return subscribes_.remove(msg.sender.id);
+    });
   }
   void add_cmd(std::string &&cmd, std::string &&description,
-               cmd_handler_t &&handler) {
-    cmd_list_.add(std::move(cmd), std::move(description), std::move(handler));
-  }
+               cmd_handler_t &&handler, uint8_t mask = 0);
+
   void notify(const std::string &&notice) {
     DBG_FUNK();
     if (is_started_) {
@@ -221,7 +220,7 @@ class ctelegram::implementation {
     is_started_ = true;
     DBG_OUT << "OK" << std::endl;
 
-    my_bot_.setMyCommands(cmd_list_.to_json().c_str());
+    my_bot_.setMyCommands(cmd_list_.to_json(SHOW_IN_MENU).c_str());
 
     std::stringstream stream;
     stream << "Активувався" << std::endl;
@@ -250,7 +249,7 @@ class ctelegram::implementation {
         }
         break;
       default:
-        my_bot_.sendMessage(msg,"/help -для допомоги");
+        my_bot_.sendMessage(msg, "/help -для допомоги");
     }
   }
 
@@ -267,6 +266,12 @@ class ctelegram::implementation {
     return stream.str();
   }
 };
+void ctelegram::implementation::add_cmd(std::string &&cmd,
+                                        std::string &&description,
+                                        cmd_handler_t &&handler, uint8_t mask) {
+  cmd_list_.add(std::move(cmd), std::move(description), std::move(handler),mask);
+}
+
 //-----------------------------------
 ctelegram::ctelegram():impl_(std::make_unique<implementation>())  {}
 ctelegram::~ctelegram() noexcept=default;
@@ -274,8 +279,8 @@ void ctelegram::setup(const char *tolken, const uint16_t interval) {
   impl_->setup(tolken, interval);
 }
 void ctelegram::add_cmd(std::string &&cmd, std::string &&description,
-                        cmd_handler_t &&handler) {
-  impl_->add_cmd(std::move(cmd), std::move(description), std::move(handler));
+                        cmd_handler_t &&handler, uint8_t mask) {
+  impl_->add_cmd(std::move(cmd), std::move(description), std::move(handler),mask);
 }
 void ctelegram::notify(const std::string &&notice) {
      impl_->notify(std::move(notice));

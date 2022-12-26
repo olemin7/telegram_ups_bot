@@ -13,6 +13,8 @@
 #include <memory>
 #include <string>
 
+static constexpr uint8_t SHOW_IN_MENU = 1;
+
 class ctelegram {
  private:
   class implementation;
@@ -25,7 +27,7 @@ class ctelegram {
 
   void setup(const char *tolken, const uint16_t interval);
   void add_cmd(std::string &&cmd, std::string &&description,
-               cmd_handler_t &&handler);
+               cmd_handler_t &&handler, uint8_t mask = 0);
   void notify(const std::string &&notice);
   bool start();
   void loop();
