@@ -51,7 +51,7 @@ class cevent_colector::implementation {
   void event(const ekind kind, bool is_ok) {
     ev_list_.push_back(event_t{kind, millis(), is_ok});
   }
-  std::string get_status(const ekind kind, bool extent) const {
+  std::string get_status(const ekind kind) const {
     bool no_data = true;
     std::stringstream result;
     event_t last;
@@ -70,11 +70,12 @@ class cevent_colector::implementation {
     }
     return result.str();
   }
-  std::string get_status(bool extend) const {
+
+  std::string get_summary() const {
     std::stringstream summary;
     for (auto ev = static_cast<uint8_t>(ekind::ev_start);
          ev < static_cast<uint8_t>(ekind::ev_last); ev++) {
-      summary << get_status(static_cast<ekind>(ev), extend);
+      summary << get_status(static_cast<ekind>(ev));
       summary << std::endl;
     }
     return summary.str();
@@ -104,9 +105,21 @@ cevent_colector::~cevent_colector() = default;
 void cevent_colector::event(const ekind event, bool is_ok) {
   impl_->event(event, is_ok);
 };
-std::string cevent_colector::get_status(const ekind event, bool extent) const  {
-  return impl_->get_status(event, extent);
+
+std::string cevent_colector::get_status(const ekind event) const  {
+  return impl_->get_status(event);
 }
-std::string cevent_colector::get_status(bool extent) const {
-  return impl_->get_status(extent);
+
+std::string cevent_colector::get_status() const {
+  std::stringstream status;
+  for (auto ev = static_cast<uint8_t>(ekind::ev_start);
+       ev < static_cast<uint8_t>(ekind::ev_last); ev++) {
+    status << impl_->get_status(static_cast<ekind>(ev));
+    status << std::endl;
+  }
+  return status.str();
+}
+
+std::string cevent_colector::get_summary() const {
+  return impl_->get_summary();
 }

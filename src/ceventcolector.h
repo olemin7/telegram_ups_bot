@@ -26,8 +26,9 @@ class cevent_colector {
     ev_last
   };
   void event(const ekind kind, bool is_ok = true);
-  std::string get_status(const ekind kind, bool extent = false) const;
-  std::string get_status(bool extent = false) const;
+  std::string get_status(const ekind kind) const;
+  std::string get_status() const;
+  std::string get_summary() const;
 };
 
 #endif /* SRC_CEVENTCOLECTOR_H_ */

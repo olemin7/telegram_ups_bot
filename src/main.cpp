@@ -55,10 +55,12 @@ constexpr auto DEF_AP_PWD = "12345678";
 constexpr auto MYTZ = "EET-2EEST,M3.5.0/3,M10.5.0/4";
 
 te_ret get_about(ostream& out) {
+  const auto rst = system_get_rst_info()->reason;
   out << "{";
   out << "\"firmware\":\"bot " << __DATE__ << " " << __TIME__ << "\"";
   out << ",\"deviceName\":\"" << pDeviceName << "\"";
-  out << ",\"resetInfo\":" << system_get_rst_info()->reason;
+  out << ",\"resetInfo\": \"" << rst << "(" << rst_reason_to_string(rst)
+      << ")\"";
   out << "}";
   return er_ok;
 }
@@ -214,6 +216,19 @@ void setup() {
   telegram.add_cmd(
       "/status", "стан системи",
       [](auto) { return event_colector.get_status(); }, SHOW_IN_MENU);
+
+  telegram.add_cmd("/get_summary", "сумарний звіт",
+                   [](auto) { return event_colector.get_summary(); });
+
+  telegram.add_cmd("/sys_info", "системна інформація", [](auto msg) {
+    std::stringstream sys_info;
+    get_about(sys_info);
+    sys_info << endl;
+    sys_info << "sender.id:" << msg.sender.id << endl;
+    wifi_status(sys_info);
+    return sys_info.str();
+  });
+  
   power.onChange([](auto val) {
     event_colector.event(cevent_colector::ekind::ev_power, val);
     telegram.notify(
