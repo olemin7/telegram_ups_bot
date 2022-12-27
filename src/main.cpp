@@ -41,7 +41,7 @@ cevent_loop event_loop;
 cled_status led_status;
 constexpr auto DEBOUNCE_SIGNAL_MS = 3000;
 SignalDebounceLoop<bool> power(DEBOUNCE_SIGNAL_MS,
-                               []() { return digitalRead(V220_PIN); });
+                               []() { return digitalRead(V220_PIN) == 0; });
 SignalDebounceLoop<bool> state_bat(DEBOUNCE_SIGNAL_MS, []() {
   return digitalRead(LOW_BAT_PIN) != 0;
 });
@@ -51,6 +51,8 @@ ctelegram telegram;
 auto config = CConfig<512>();
 const char* update_path = "/firmware";
 constexpr auto DEF_AP_PWD = "12345678";
+
+constexpr auto MYTZ = "EET-2EEST,M3.5.0/3,M10.5.0/4";
 
 te_ret get_about(ostream& out) {
   out << "{";
@@ -203,6 +205,10 @@ void setup() {
   LittleFS_info(DBG_OUT);
   setup_config();
   setup_WebPages();
+  // Sync time with NTP, to check properly Telegram certificate
+  configTime(MYTZ, "time.google.com", "time.windows.com", "pool.ntp.org");
+  event_loop.set_interval([]() { time(nullptr); }, 1000, true); //to time sync
+
   telegram.setup(config.getCSTR("TELEGRAM_TOLKEN"),
                  config.getInt("TELEGRAM_UPDATE_TIME"));
   telegram.add_cmd(

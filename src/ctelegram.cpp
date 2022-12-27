@@ -19,8 +19,6 @@
 #include <sstream>
 #include <vector>
 
-constexpr auto MYTZ = "EET-2EEST,M3.5.0/3,M10.5.0/4";
-
 class ccmd_list {
   struct cmd_t {
     std::string cmd;
@@ -177,7 +175,6 @@ class ctelegram::implementation {
     is_started_ = false;
     subscribes_.init();
     // Sync time with NTP, to check properly Telegram certificate
-    configTime(MYTZ, "time.google.com", "time.windows.com", "pool.ntp.org");
     // Set certficate, session and some other base client properies
     client_.setSession(&session_);
     client_.setTrustAnchors(&certificate_);

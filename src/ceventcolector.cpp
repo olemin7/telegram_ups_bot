@@ -9,6 +9,7 @@
 #include <TimeLib.h>
 #include <ceventcolector.h>
 
+#include <cstdio>
 #include <sstream>
 #include <vector>
 
@@ -20,30 +21,31 @@ class cevent_colector::implementation {
     bool is_ok;
   };
   std::vector<event_t> ev_list_;
+  // static constexpr auto EVENT_COUNT = 1000;
 
  public:
   std::string event_name_str(const ekind kind) const;
   std::string ts_to_str(uint32_t ts) const {
-    std::stringstream result;
-    const auto diff = millis() - ts;
-    auto passed = diff;
-    passed /= 1000;
-    if (60 >= passed) {
-      result << passed << " секунд";
-    } else {
+    const auto diff_sec = (millis() - ts) / 1000;
+    const auto now = time(nullptr);
+    if (diff_sec < 5) {
+      return " щойно";
+    } else if (diff_sec < 24 * 60 * 60 || (now < 24 * 60 * 60)) {
+      auto passed = diff_sec;
+      const int sec = passed % 60;
       passed /= 60;
-      if (60 >= passed) {
-        result << passed << " хвилин";
-      } else {
-        passed /= 60;
-        result << passed << " годин";
-      }
+      const int min = passed % 60;
+      const int hours = passed / 60;
+      char tt[20];
+      std::snprintf(tt, sizeof(tt), " %d:%02d:%02d", hours, min, sec);
+      return tt;
     }
-    //    if (timeNotSet != timeStatus()) {
-    //      auto now = time(nullptr) - diff;
-    //      auto tm = *localtime(&now);
-    //    }
-    return result.str();
+    // time set
+    auto event_at = now - diff_sec;
+    auto tm = *localtime(&event_at);
+    char tt[30];
+    strftime(tt, sizeof(tt), " від %e %b %G %R", &tm);
+    return tt;
   }
 
   void event(const ekind kind, bool is_ok) {
@@ -63,7 +65,6 @@ class cevent_colector::implementation {
     if (no_data) {
       result << "(нема данних)";
     } else {
-      const auto now = millis();
       result << " " << (last.is_ok ? "норма" : "відсутній");
       result <<" "<< ts_to_str(last.ts);
     }
