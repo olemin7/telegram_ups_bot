@@ -8,6 +8,7 @@
 #include <Arduino.h>
 #include <TimeLib.h>
 #include <ceventcolector.h>
+#include <logs.h>
 
 #include <cstdio>
 #include <sstream>
@@ -25,20 +26,23 @@ class cevent_colector::implementation {
 
  public:
   std::string event_name_str(const ekind kind) const;
+  std::string duration_to_str(uint32_t duration_ms) const {
+    auto passed = duration_ms / 1000;
+    const int sec = passed % 60;
+    passed /= 60;
+    const int min = passed % 60;
+    const int hours = passed / 60;
+    char tt[20];
+    std::snprintf(tt, sizeof(tt), " %d:%02d:%02d", hours, min, sec);
+    return tt;
+  }
   std::string ts_to_str(uint32_t ts) const {
     const auto diff_sec = (millis() - ts) / 1000;
     const auto now = time(nullptr);
     if (diff_sec < 5) {
       return " щойно";
     } else if (diff_sec < 24 * 60 * 60 || (now < 24 * 60 * 60)) {
-      auto passed = diff_sec;
-      const int sec = passed % 60;
-      passed /= 60;
-      const int min = passed % 60;
-      const int hours = passed / 60;
-      char tt[20];
-      std::snprintf(tt, sizeof(tt), " %d:%02d:%02d", hours, min, sec);
-      return tt;
+      return duration_to_str(diff_sec * 1000);
     }
     // time set
     auto event_at = now - diff_sec;
@@ -72,12 +76,58 @@ class cevent_colector::implementation {
   }
 
   std::string get_summary() const {
-    std::stringstream summary;
-    for (auto ev = static_cast<uint8_t>(ekind::ev_start);
-         ev < static_cast<uint8_t>(ekind::ev_last); ev++) {
-      summary << get_status(static_cast<ekind>(ev));
-      summary << std::endl;
+    DBG_FUNK();
+    const auto ms = millis();
+    uint32_t work_time = 0;
+    uint32_t power_time = 0;
+    uint32_t power_outages_count = 0;
+    uint32_t power_outages_max = 0;
+    event_t power_pre_state;
+    for (const auto &el : ev_list_) {
+      switch (el.kind) {
+        case ekind::ev_start:
+          if (work_time) {
+            DBG_OUT << "unexpected ev_start" << std::endl;
+          }
+          work_time = ms - el.ts;
+          power_pre_state.ts = 0;
+          break;
+        case ekind::ev_power:
+          if (power_pre_state.ts) {  // inited
+            const auto duration = el.ts - power_pre_state.ts;
+            if (el.is_ok) {  // turned on
+              if (duration > power_outages_max) {
+                power_outages_max = duration;
+              }
+            } else {
+              power_outages_count++;
+              power_time += duration;
+            }
+          }
+          power_pre_state = el;
+          break;
+      }
     }
+    // to include last period
+    if (power_pre_state.ts) {  // inited
+      const auto duration = ms - power_pre_state.ts;
+      if (!power_pre_state.is_ok) {  // now is off
+        if (duration > power_outages_max) {
+          power_outages_max = duration;
+        }
+      } else {
+        power_time += duration;
+      }
+    }
+    std::stringstream summary;
+    summary << "час роботи " << duration_to_str(work_time) << std::endl;
+    summary << "було живлення " << duration_to_str(power_time) << "("
+            << (power_time * 100 / work_time) << "%)" << std::endl;
+    summary << "кількість вимкнень " << power_outages_count;
+    if (power_outages_count) {
+      summary << ", найдовше тривало " << duration_to_str(power_outages_max);
+    }
+    summary  << std::endl;
     return summary.str();
   }
   };
@@ -106,11 +156,12 @@ void cevent_colector::event(const ekind event, bool is_ok) {
   impl_->event(event, is_ok);
 };
 
-std::string cevent_colector::get_status(const ekind event) const  {
+std::string cevent_colector::get_status(const ekind event) const {
   return impl_->get_status(event);
 }
 
 std::string cevent_colector::get_status() const {
+  DBG_FUNK();
   std::stringstream status;
   for (auto ev = static_cast<uint8_t>(ekind::ev_start);
        ev < static_cast<uint8_t>(ekind::ev_last); ev++) {

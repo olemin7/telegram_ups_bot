@@ -238,6 +238,10 @@ void setup() {
     event_colector.event(cevent_colector::ekind::ev_battery, val);
     telegram.notify(
         event_colector.get_status(cevent_colector::ekind::ev_battery));
+    if (!val) {
+      // the "last will"
+      telegram.notify(event_colector.get_summary());
+    }
   });
 
   setup_WIFIConnect();
