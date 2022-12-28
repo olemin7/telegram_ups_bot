@@ -18,7 +18,7 @@ class cevent_colector::implementation {
  private:
   struct event_t {
     ekind kind;
-    uint32_t ts;
+    uint32_t ts = 0;
     bool is_ok;
   };
   std::vector<event_t> ev_list_;
@@ -26,7 +26,7 @@ class cevent_colector::implementation {
 
  public:
   std::string event_name_str(const ekind kind) const;
-  std::string duration_to_str(uint32_t duration_ms) const {
+  std::string duration_to_str(uint64_t duration_ms) const {
     auto passed = duration_ms / 1000;
     const int sec = passed % 60;
     passed /= 60;
@@ -56,21 +56,25 @@ class cevent_colector::implementation {
     ev_list_.push_back(event_t{kind, millis(), is_ok});
   }
   std::string get_status(const ekind kind) const {
-    bool no_data = true;
     std::stringstream result;
+    event_t pre;
     event_t last;
     result << event_name_str(kind);
     for (const auto &el : ev_list_) {
       if (kind == el.kind) {
-        no_data = false;
+        pre = last;
         last = el;
       }
     }
-    if (no_data) {
+    if (last.ts == 0) {
       result << "(нема данних)";
     } else {
       result << " " << (last.is_ok ? "норма" : "відсутній");
-      result <<" "<< ts_to_str(last.ts);
+      result << " " << ts_to_str(last.ts);
+      if (pre.ts) {
+        result << ", попередній стан тривав "
+               << duration_to_str(last.ts - pre.ts) << "";
+      }
     }
     return result.str();
   }
@@ -78,10 +82,10 @@ class cevent_colector::implementation {
   std::string get_summary() const {
     DBG_FUNK();
     const auto ms = millis();
-    uint32_t work_time = 0;
-    uint32_t power_time = 0;
-    uint32_t power_outages_count = 0;
-    uint32_t power_outages_max = 0;
+    uint64_t work_time = 0;
+    uint64_t power_time = 0;
+    uint64_t power_outages_count = 0;
+    uint64_t power_outages_max = 0;
     event_t power_pre_state;
     for (const auto &el : ev_list_) {
       switch (el.kind) {
