@@ -11,10 +11,6 @@
 #include <string>
 
 class cevent_colector {
- private:
-  class implementation;
-  std::unique_ptr<implementation> impl_;
-
  public:
   cevent_colector();
   ~cevent_colector();
@@ -29,6 +25,10 @@ class cevent_colector {
   std::string get_status(const ekind kind) const;
   std::string get_status() const;
   std::string get_summary() const;
+
+ private:
+  class implementation;
+  std::unique_ptr<implementation> impl_;
 };
 
 #endif /* SRC_CEVENTCOLECTOR_H_ */
