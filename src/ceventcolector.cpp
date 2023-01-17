@@ -162,6 +162,8 @@ void cevent_graph::event(const event_t &ev) {
         put_char(mktime(&tm) - time_step_, ' ');
       }
       is_started = true;
+    } else {
+      put_char(event_at - time_step_, is_ok_);  // fill previous
     }
     is_ok_ = ev.is_ok;
     put_char(event_at, ev.is_ok);
@@ -171,7 +173,8 @@ std::string cevent_graph::finalize() {
   if (!is_started) {
     return {};
   }
-  put_char(millis(), is_ok_);
+  event(event_t{cevent_colector::ekind::ev_power, millis(),
+                is_ok_});  // last update is till now
   auto tm = *localtime(&pre_);
   tm.tm_hour = 23;
   tm.tm_min = 59;
@@ -258,25 +261,26 @@ std::string cevent_colector::implementation::get_summary() const {
     event_graph.event(el);
     whole_report.event(el);
   }
-  //clang-format off
+
   //  auto tt = time(nullptr);
   //  auto tm = *localtime(&tt);
   //  tm.tm_hour = 0;
   //  tm.tm_min = 0;
   //  tm.tm_sec = 0;
-  //  const auto _day_2 =mktime(&tm)-2*24 * 60 * 60 * 1000;
+  //  const auto _day_2 = (mktime(&tm) - 2 * 24 * 60 * 60)*1000;
   //
-  //  event_graph.event(event_t{cevent_colector::ekind::ev_power, _day_2+0,
-  //  true}); event_graph.event(event_t{cevent_colector::ekind::ev_power,
-  //  _day_2+20 * 60 * 60 * 1000, false});
-  //  event_graph.event(event_t{cevent_colector::ekind::ev_power, _day_2+(24+1)
-  //  * 60 * 60 * 1000, true});
-  // clang-format on
+  //  event_graph.event(
+  //      event_t{cevent_colector::ekind::ev_power, _day_2 + 0, true});
+  //  event_graph.event(event_t{cevent_colector::ekind::ev_power,
+  //                            _day_2 + 20 * 60 * 60*1000 , false});
+  //  event_graph.event(event_t{cevent_colector::ekind::ev_power,
+  //                            _day_2 + (24 + 1) * 60 * 60*1000 , true});
+
   whole_report.finalize();
   // to include last period
 
   std::stringstream summary;
-  summary<<event_graph.finalize()<<std::endl;
+  summary << event_graph.finalize() << std::endl;
 
   const auto work_time = ts_cur - whole_report.ts_beg_;
   summary << "час роботи " << duration_to_str(work_time) << std::endl;
