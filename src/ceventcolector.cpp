@@ -106,14 +106,17 @@ class cevent_graph {
   time_t pre_;
   time_t ts_beg_;  // include local time offset
   bool is_need_endl_ = false;
-  static constexpr auto time_step_ = 30 * 60;
+  bool is_ok_;
+  static constexpr auto time_day = 24 * 60 * 60;
+  static constexpr auto time_step_ = 60 * 60;
   void put_char(const time_t &tm, char ch);
 };
 
 void cevent_graph::put_char(const time_t &at, char ch) {
   while (at >= pre_) {
-    const auto step = (pre_ - ts_beg_) / time_step_ % (24 * 60 * 60);
+    const auto step = (pre_ - ts_beg_) % time_day;
     const auto tm = *localtime(&pre_);
+    DBG_OUT << "step " << step;
     if (step == 0) {
       char tt[10];
       strftime(tt, sizeof(tt), "%D", &tm);
@@ -134,7 +137,7 @@ void cevent_graph::put_char(const time_t &at, char ch) {
         result << ch;
     }
 
-    if (step == (24 * 60 * 60 / time_step_ - 1)) {
+    if (step == (time_day - time_step_)) {
       result << "]</pre>";
     }
     pre_ += time_step_;
@@ -154,13 +157,13 @@ void cevent_graph::event(const event_t &ev) {
       tm_pre.tm_hour = 0;
       tm_pre.tm_min = 0;
       tm_pre.tm_sec = 0;
-
       ts_beg_ = pre_ = mktime(&tm_pre);
       if (tm.tm_hour) {
         put_char(mktime(&tm) - time_step_, ' ');
       }
       is_started = true;
     }
+    is_ok_ = ev.is_ok;
     put_char(event_at, ev.is_ok);
   }
 }
@@ -168,6 +171,7 @@ std::string cevent_graph::finalize() {
   if (!is_started) {
     return {};
   }
+  put_char(millis(), is_ok_);
   auto tm = *localtime(&pre_);
   tm.tm_hour = 23;
   tm.tm_min = 59;
@@ -245,15 +249,29 @@ std::string cevent_colector::implementation::get_status(
 
 std::string cevent_colector::implementation::get_summary() const {
   DBG_FUNK();
-  
+
   cevent_calculate whole_report;
   const auto ts_cur = millis();
   cevent_graph event_graph;
-  
+
   for (const auto &el : ev_list_) {
-      event_graph.event(el);
-      whole_report.event(el);
+    event_graph.event(el);
+    whole_report.event(el);
   }
+  //clang-format off
+  //  auto tt = time(nullptr);
+  //  auto tm = *localtime(&tt);
+  //  tm.tm_hour = 0;
+  //  tm.tm_min = 0;
+  //  tm.tm_sec = 0;
+  //  const auto _day_2 =mktime(&tm)-2*24 * 60 * 60 * 1000;
+  //
+  //  event_graph.event(event_t{cevent_colector::ekind::ev_power, _day_2+0,
+  //  true}); event_graph.event(event_t{cevent_colector::ekind::ev_power,
+  //  _day_2+20 * 60 * 60 * 1000, false});
+  //  event_graph.event(event_t{cevent_colector::ekind::ev_power, _day_2+(24+1)
+  //  * 60 * 60 * 1000, true});
+  // clang-format on
   whole_report.finalize();
   // to include last period
 
@@ -271,7 +289,6 @@ std::string cevent_colector::implementation::get_summary() const {
             << duration_to_str(whole_report.power_outages_max_);
   }
   summary  << std::endl;
-  DBG_OUT<<summary.str();
   return summary.str();
 }
 
