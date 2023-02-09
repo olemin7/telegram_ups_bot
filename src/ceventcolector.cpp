@@ -37,7 +37,6 @@ class cevent_colector::implementation {
 
  private:
   std::vector<event_t> ev_list_;
-  std::string duration_to_str(uint64_t duration_ms) const;
   std::string ts_to_str(uint32_t ts) const;
 };
 
@@ -53,6 +52,15 @@ class cevent_calculate {
 
  private:
 };
+
+std::string duration_to_str(uint64_t duration_ms) {
+  auto passed = duration_ms / 60000;
+  const int min = passed % 60;
+  const int hours = passed / 60;
+  char tt[20];
+  std::snprintf(tt, sizeof(tt), " %d:%02d", hours, min);
+  return tt;
+}
 
 void cevent_calculate::event(const event_t &ev) {
   if (!ts_beg_) {
@@ -96,6 +104,7 @@ void cevent_calculate::finalize() {
 
 class cevent_graph {
  public:
+  cevent_graph(uint32_t now) : now_(now){};
   void event(const event_t &ev);
   std::string finalize();
 
@@ -105,8 +114,11 @@ class cevent_graph {
   bool is_started = false;
   time_t pre_;
   time_t ts_beg_;  // include local time offset
+  uint32_t light_duration_ = 0;
   bool is_need_endl_ = false;
   bool is_ok_;
+  const uint32_t now_;
+
   static constexpr auto time_day = 24 * 60 * 60;
   static constexpr auto time_step_ = 60 * 60;
   void put_char(const time_t &tm, char ch);
@@ -116,7 +128,6 @@ void cevent_graph::put_char(const time_t &at, char ch) {
   while (at >= pre_) {
     const auto step = (pre_ - ts_beg_) % time_day;
     const auto tm = *localtime(&pre_);
-    DBG_OUT << "step " << step;
     if (step == 0) {
       char tt[10];
       strftime(tt, sizeof(tt), "%D", &tm);
@@ -138,7 +149,17 @@ void cevent_graph::put_char(const time_t &at, char ch) {
     }
 
     if (step == (time_day - time_step_)) {
-      result << "]</pre>";
+      result << "]";
+      //      if (time_day > light_duration_) {
+      //        result << duration_to_str(static_cast<uint64_t>(light_duration_)
+      //        *
+      //                                  1000);
+      //        light_duration_ = 0;
+      //      }
+      //      else {
+      //        light_duration_ -= time_day;
+      //      }
+      result << "</pre>";
     }
     pre_ += time_step_;
   }
@@ -147,7 +168,7 @@ void cevent_graph::put_char(const time_t &at, char ch) {
 void cevent_graph::event(const event_t &ev) {
   DBG_FUNK();
   if (ev.kind == cevent_colector::ekind::ev_power) {
-    const auto diff_sec = (millis() - ev.ts) / 1000;
+    const auto diff_sec = (now_ - ev.ts) / 1000;
     // time set
     const auto event_at = time(nullptr) - diff_sec;
 
@@ -181,16 +202,6 @@ std::string cevent_graph::finalize() {
   tm.tm_sec = 59;
   put_char(mktime(&tm), ' ');
   return result.str();
-}
-
-std::string cevent_colector::implementation::duration_to_str(
-    uint64_t duration_ms) const {
-  auto passed = duration_ms / 60000;
-  const int min = passed % 60;
-  const int hours = passed / 60;
-  char tt[20];
-  std::snprintf(tt, sizeof(tt), " %d:%02d", hours, min);
-  return tt;
 }
 
 std::string cevent_colector::implementation::ts_to_str(uint32_t ts) const {
@@ -255,27 +266,25 @@ std::string cevent_colector::implementation::get_summary() const {
 
   cevent_calculate whole_report;
   const auto ts_cur = millis();
-  cevent_graph event_graph;
 
+#ifdef true
+  cevent_graph event_graph(ts_cur);
   for (const auto &el : ev_list_) {
     event_graph.event(el);
     whole_report.event(el);
   }
+#else
+  uint32_t gmt_ofs= 2 * 60 * 60 * 1000;
+  cevent_graph event_graph(gmt_ofs+2 * 24 * 60 * 60 * 1000);
+  event_graph.event(event_t{cevent_colector::ekind::ev_power, gmt_ofs+0, true});
+  event_graph.event(event_t{cevent_colector::ekind::ev_power,
+                            gmt_ofs + (1) * 60 * 60 * 1000, false});
+  event_graph.event(event_t{cevent_colector::ekind::ev_power,
+                            gmt_ofs + (24 + 0) * 60 * 60 * 1000, true});
+  event_graph.event(event_t{cevent_colector::ekind::ev_power,
+                            gmt_ofs + (24 + 12) * 60 * 60 * 1000, false});
 
-  //  auto tt = time(nullptr);
-  //  auto tm = *localtime(&tt);
-  //  tm.tm_hour = 0;
-  //  tm.tm_min = 0;
-  //  tm.tm_sec = 0;
-  //  const auto _day_2 = (mktime(&tm) - 2 * 24 * 60 * 60)*1000;
-  //
-  //  event_graph.event(
-  //      event_t{cevent_colector::ekind::ev_power, _day_2 + 0, true});
-  //  event_graph.event(event_t{cevent_colector::ekind::ev_power,
-  //                            _day_2 + 20 * 60 * 60*1000 , false});
-  //  event_graph.event(event_t{cevent_colector::ekind::ev_power,
-  //                            _day_2 + (24 + 1) * 60 * 60*1000 , true});
-
+#endif
   whole_report.finalize();
   // to include last period
 
