@@ -224,6 +224,9 @@ class ctelegram::implementation {
     notify(stream.str());
     return true;
   }
+  void stop() {
+      is_started_=false;
+  }
   void loop() {
     if (!is_started_) {
       return;
@@ -280,10 +283,14 @@ void ctelegram::add_cmd(std::string &&cmd, std::string &&description,
   impl_->add_cmd(std::move(cmd), std::move(description), std::move(handler),mask);
 }
 void ctelegram::notify(const std::string &&notice) {
-     impl_->notify(std::move(notice));
+  impl_->notify(std::move(notice));
 }
 bool ctelegram::start(){
     return impl_->start();
+}
+
+void ctelegram::stop(){
+    impl_->stop();
 }
 void ctelegram::loop(){
     impl_->loop();

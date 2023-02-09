@@ -30,5 +30,6 @@ class ctelegram {
                cmd_handler_t &&handler, uint8_t mask = 0);
   void notify(const std::string &&notice);
   bool start();
+  void stop();
   void loop();
 };

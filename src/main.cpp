@@ -153,6 +153,8 @@ void setup_WIFIConnect() {
             }
           },
           15000, true);  // retry connection
+    } else {
+      telegram.stop();
     }
     led_status.set(cled_status::Work);
     wifi_status(DBG_OUT);
